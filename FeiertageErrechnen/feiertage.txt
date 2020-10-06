@@ -1,8 +1,9 @@
-1,1
-6,1
-1,5
-26,10
-1,11
-8,12
-25,12
-26,12
+1,1,Silvester
+6,1,Dreikönigsfest
+1,5,Tag der Arbeit
+15,8,Maria Himmelfahrt
+26,10,Staatsfeiertag
+1,11,Allerheiligen
+8,12,Maria Empfängnis
+25,12,Weihnachten
+26,12,Stefanitag
