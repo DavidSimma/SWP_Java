@@ -4,6 +4,7 @@ import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.json.JSONObject;
 
@@ -18,12 +19,12 @@ import java.util.*;
 public class Programm extends Application {
     public static HashMap<LocalDate, String> feiertage = new HashMap();
     public static List<String> nix = new ArrayList<>();
-    public static int monday=0,tuesday=0,wednesday=0,thursday=0,friday=0;
+    public static int monday=0,tuesday=0,wednesday=0,thursday=0,friday=0, anfangsJahr, endjahr;;
 
     public static void main(String[] args){
 
         Scanner reader = new Scanner(System.in);
-        int anfangsJahr, endjahr;
+
         LocalDate k = LocalDate.now();
 
 
@@ -81,7 +82,7 @@ public class Programm extends Application {
         }
 
     }
-    public static JSONObject APIEinlesen(String url){
+    public static JSONObject Jsoneinlesen(String url){
         JSONObject json = new JSONObject();
 
 
@@ -99,7 +100,7 @@ public class Programm extends Application {
 
     private static void feiertageEinlesen(int year, String name) {
         String urlBase = "https://feiertage-api.de/api/?jahr=";
-        JSONObject json = APIEinlesen(urlBase + year);
+        JSONObject json = Jsoneinlesen(urlBase + year);
         String date = json.getJSONObject("BY").getJSONObject(name).get("datum").toString();
         feiertage.put(LocalDate.parse(date), name);
     }
@@ -121,23 +122,26 @@ public class Programm extends Application {
     public void start(Stage stage) throws Exception {
         String mo="Monday", tu="Tuesday", we="Wednessday", th="Thursday", fr="Frayday";
 
-        final NumberAxis xAxis = new NumberAxis();
-        final CategoryAxis yAxis = new CategoryAxis();
+        final NumberAxis yAxis = new NumberAxis();
+        final CategoryAxis xAxis = new CategoryAxis();
 
-        final BarChart<Number, String> barChart = new BarChart<Number, String>(xAxis, yAxis);
-        barChart.setTitle("Free Weekdays");
+        final BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
+        barChart.setTitle("Free Weekdays from " + anfangsJahr + " until " + endjahr);
         xAxis.setLabel("Weekdays");
         yAxis.setLabel("Days");
+        XYChart.Series<String, Number> series1 = new XYChart.Series<>();
 
-        XYChart.Series series1 = new XYChart.Series();
-        series1.getData().add(new XYChart.Data(monday, mo));
-        series1.getData().add(new XYChart.Data(tuesday, tu));
-        series1.getData().add(new XYChart.Data(wednesday, we));
-        series1.getData().add(new XYChart.Data(wednesday, th));
-        series1.getData().add(new XYChart.Data(wednesday, fr));
+        series1.setName("Amout Days");
+        series1.getData().add(new XYChart.Data<>(mo, monday));
+        series1.getData().add(new XYChart.Data<>(tu, tuesday));
+        series1.getData().add(new XYChart.Data<>(we, wednesday));
+        series1.getData().add(new XYChart.Data<>(th, thursday));
+        series1.getData().add(new XYChart.Data<>(fr, friday));
 
-        Scene scene = new Scene(barChart, 640, 480);
-        barChart.getData().addAll(series1);
+        VBox vbox = new VBox(barChart);
+
+        Scene scene = new Scene(vbox, 640, 480);
+        barChart.getData().add(series1);
         stage.setScene(scene);
         stage.show();
     }
