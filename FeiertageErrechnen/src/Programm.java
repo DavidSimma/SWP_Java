@@ -19,6 +19,7 @@ import java.util.*;
 
 public class Programm extends Application {
     public static HashMap<LocalDate, String> feiertage = new HashMap();
+    public static HashMap<LocalDate, String> ferien = new HashMap();
     public static List<String> nix = new ArrayList<>();
     public static int monday=0,tuesday=0,wednesday=0,thursday=0,friday=0, anfangsJahr, endjahr;
 
@@ -38,39 +39,19 @@ public class Programm extends Application {
         for(LocalDate ld : feiertage.keySet()){
             switch (ld.getDayOfWeek()){
                 case MONDAY:
-                    if(feiertage.get(ld).contains("ferien")){
-                        monday-=1;
-                    }else{
-                    monday+=1;
-                    }
+                    if (!ferien.containsKey(ld)) monday+=1;
                     break;
                 case TUESDAY:
-                    if(feiertage.get(ld).contains("ferien")){
-                        tuesday-=1;
-                    }else{
-                        tuesday+=1;
-                    }
+                    if (!ferien.containsKey(ld)) tuesday+=1;
                     break;
                 case WEDNESDAY:
-                    if(feiertage.get(ld).contains("ferien")){
-                        wednesday-=1;
-                    }else{
-                        wednesday+=1;
-                    }
+                    if (!ferien.containsKey(ld)) wednesday+=1;
                     break;
                 case THURSDAY:
-                    if(feiertage.get(ld).contains("ferien")){
-                        thursday-=1;
-                    }else{
-                        thursday+=1;
-                    }
+                    if (!ferien.containsKey(ld)) thursday+=1;
                     break;
                 case FRIDAY:
-                    if(feiertage.get(ld).contains("ferien")){
-                        friday-=1;
-                    }else{
-                        friday+=1;
-                    }
+                    if (!ferien.containsKey(ld)) friday+=1;
                     break;
                 default:
                     break;
@@ -111,9 +92,6 @@ public class Programm extends Application {
     }
     public static JSONObject Jsoneinlesen(String url){
         JSONObject json = new JSONObject();
-
-
-
         try {
             json = new JSONObject(IOUtils.toString(new URL(url), Charset.forName("UTF-8")));
         }
@@ -148,14 +126,15 @@ public class Programm extends Application {
         }
         if(urlBase == "https://ferien-api.de/api/v1/holidays/BY/"){
             JSONArray json = JsonArrayEinlesen(urlBase + year);
-            for (int i = 0; i <= json.length(); i++){
+            for (int i = 0; i <= json.length()-1; i++){
                 JSONObject jObject = (JSONObject) json.get(i);
                 String temp = (String) jObject.get("end");
                 String endDate = temp.split("T")[0];
                 String temp2 = (String) jObject.get("start");
                 String startDate = temp2.split("T")[0];
-                for (LocalDate o = LocalDate.parse(startDate); o.isBefore(LocalDate.parse(endDate).plusDays(1)); o.plusDays(1)){
-                    feiertage.put(o, name);
+                for (LocalDate o = LocalDate.parse(startDate); o.isBefore(LocalDate.parse(endDate).plusDays(1)); o = o.plusDays(1)){
+                    ferien.put(o, name);
+                    System.out.println(o);
                 }
             }
         }
