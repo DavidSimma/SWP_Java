@@ -13,9 +13,14 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.sql.*;
 import java.time.LocalDate;
 import org.apache.commons.io.IOUtils;
 import java.util.*;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.util.Date;
 
 public class Programm extends Application {
     public static HashMap<LocalDate, String> feiertage = new HashMap();
@@ -28,6 +33,8 @@ public class Programm extends Application {
         Scanner reader = new Scanner(System.in);
 
         LocalDate k = LocalDate.now();
+
+        long start = System.currentTimeMillis();
 
         System.out.print("Anfangsjahr: ");
         anfangsJahr = reader.nextInt();
@@ -58,10 +65,120 @@ public class Programm extends Application {
             }
 
         }
-
+        long end = System.currentTimeMillis();
+        createNewDatabase("hollidays.db");
+        connect();
+        createNewTable();
+        insert(LocalDate.now(), (int)(end - start));
+        selectAll();
         launch(args);
 
+
+
     }
+
+    public static void createNewDatabase(String fileName) {
+
+        String url = "jdbc:sqlite:C:/sqlite/" + fileName;
+
+        try {
+            Connection conn = DriverManager.getConnection(url);
+            if (conn != null) {
+                DatabaseMetaData meta = conn.getMetaData();
+                System.out.println("The driver name is " + meta.getDriverName());
+                System.out.println("A new database has been created.");
+            }
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public static void connect() {
+        Connection conn = null;
+        try {
+            // db parameters
+            String url = "jdbc:sqlite:C:/sqlite/hollidays.db";
+            // create a connection to the database
+            conn = DriverManager.getConnection(url);
+
+            System.out.println("Connection to SQLite has been established.");
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException ex) {
+                System.out.println(ex.getMessage());
+            }
+        }
+    }
+
+    public static void createNewTable() {
+        // SQLite connection string
+        String url = "jdbc:sqlite:C://sqlite/hollidays.db";
+
+        // SQL statement for creating a new table
+        String sql = "CREATE TABLE IF NOT EXISTS zeiten (datum DATE PRIMARY KEY, zeit INT NOT NULL);";
+
+        try{
+            Connection conn = DriverManager.getConnection(url);
+            Statement stmt = conn.createStatement();
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            System.out.println("ö"+e.getMessage());
+        }
+    }
+
+    private static Connection connectToTable() {
+        // SQLite connection string
+        String url = "jdbc:sqlite:C://sqlite/hollidays.db";
+        Connection conn = null;
+        try {
+            conn = DriverManager.getConnection(url);
+        } catch (SQLException e) {
+            System.out.println("ä" + e.getMessage());
+        }
+        return conn;
+    }
+
+    public static void insert(LocalDate date, int time) {
+        String sql = "INSERT INTO zeiten(datum, zeit) VALUES(?,?)";
+
+        try{
+            Connection conn = connectToTable();
+            Timestamp ts = new Timestamp(System.currentTimeMillis());
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setDate(1, java.sql.Date.valueOf(date));
+            pstmt.setDouble(2, time);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("ü"+e.getMessage());
+        }
+    }
+
+    public static void selectAll(){
+        String sql = "SELECT * FROM zeiten";
+
+        try {
+            Connection conn = connectToTable();
+            Statement stmt  = conn.createStatement();
+            ResultSet rs    = stmt.executeQuery(sql);
+
+            // loop through the result set
+            while (rs.next()) {
+                System.out.println(
+                        rs.getDate("datum") + "\t" +
+                        rs.getInt("zeit"));
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
 
     public static void feiertageErzeugen(int anfang, int ende){
         String urlBase = "https://feiertage-api.de/api/?jahr=";
@@ -134,7 +251,7 @@ public class Programm extends Application {
                 String startDate = temp2.split("T")[0];
                 for (LocalDate o = LocalDate.parse(startDate); o.isBefore(LocalDate.parse(endDate).plusDays(1)); o = o.plusDays(1)){
                     ferien.put(o, name);
-                    System.out.println(o);
+                    //System.out.println(o);
                 }
             }
         }
