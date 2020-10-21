@@ -8,25 +8,28 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDate;
 import org.apache.commons.io.IOUtils;
+import org.sqlite.date.DateFormatUtils;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.Date;
 
 public class Programm extends Application {
     public static HashMap<LocalDate, String> feiertage = new HashMap();
     public static HashMap<LocalDate, String> ferien = new HashMap();
     public static List<String> nix = new ArrayList<>();
     public static int monday=0,tuesday=0,wednesday=0,thursday=0,friday=0, anfangsJahr, endjahr;
+    public static List<Integer> time = new ArrayList<>();
 
     public static void main(String[] args){
 
@@ -69,13 +72,21 @@ public class Programm extends Application {
         createNewDatabase("hollidays.db");
         connect();
         createNewTable();
-        insert(LocalDate.now(), (int)(end - start));
+        insert((int)(end - start));
         selectAll();
+
+        int all = 0;
+        for(int i : time){
+            all +=i;
+        }
+        System.out.println("Das Programm dauert duchschnittlich "+all/time.size()+" Millisekunden");
         launch(args);
 
 
 
     }
+
+
 
     public static void createNewDatabase(String fileName) {
 
@@ -122,7 +133,7 @@ public class Programm extends Application {
         String url = "jdbc:sqlite:C://sqlite/hollidays.db";
 
         // SQL statement for creating a new table
-        String sql = "CREATE TABLE IF NOT EXISTS zeiten (datum DATE PRIMARY KEY, zeit INT NOT NULL);";
+        String sql = "CREATE TABLE IF NOT EXISTS zeiten (datum DATETIME_INTERVAL_CODE, zeit INT NOT NULL);";
 
         try{
             Connection conn = DriverManager.getConnection(url);
@@ -145,14 +156,14 @@ public class Programm extends Application {
         return conn;
     }
 
-    public static void insert(LocalDate date, int time) {
+    public static void insert(int time) {
         String sql = "INSERT INTO zeiten(datum, zeit) VALUES(?,?)";
 
         try{
             Connection conn = connectToTable();
-            Timestamp ts = new Timestamp(System.currentTimeMillis());
+            LocalDateTime dateTime = LocalDateTime.now();
             PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setDate(1, java.sql.Date.valueOf(date));
+            pstmt.setDate(1, java.sql.Date.valueOf(LocalDate.now()));
             pstmt.setDouble(2, time);
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -173,6 +184,7 @@ public class Programm extends Application {
                 System.out.println(
                         rs.getDate("datum") + "\t" +
                         rs.getInt("zeit"));
+                time.add(rs.getInt("zeit"));
             }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
