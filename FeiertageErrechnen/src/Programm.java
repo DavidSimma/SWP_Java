@@ -12,6 +12,7 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -30,8 +31,12 @@ public class Programm extends Application {
     public static List<String> nix = new ArrayList<>();
     public static int monday=0,tuesday=0,wednesday=0,thursday=0,friday=0, anfangsJahr, endjahr;
     public static List<Integer> time = new ArrayList<>();
+    public static String url = "jdbc:mysql://localhost:3306/feiertage?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+    public static Connection connection;
 
     public static void main(String[] args){
+        connectToMySql();
+        System.out.println(java.sql.Date.valueOf(LocalDate.now()));
 
         Scanner reader = new Scanner(System.in);
 
@@ -69,11 +74,8 @@ public class Programm extends Application {
 
         }
         long end = System.currentTimeMillis();
-        createNewDatabase("hollidays.db");
-        connect();
-        createNewTable();
-        insert((int)(end - start));
-        selectAll();
+        writeDataInDB((int)(end - start));
+        getDataFromDB();
 
         int all = 0;
         for(int i : time){
@@ -100,92 +102,6 @@ public class Programm extends Application {
                 System.out.println("A new database has been created.");
             }
 
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-    }
-
-    public static void connect() {
-        Connection conn = null;
-        try {
-            // db parameters
-            String url = "jdbc:sqlite:C:/sqlite/hollidays.db";
-            // create a connection to the database
-            conn = DriverManager.getConnection(url);
-
-            System.out.println("Connection to SQLite has been established.");
-
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        } finally {
-            try {
-                if (conn != null) {
-                    conn.close();
-                }
-            } catch (SQLException ex) {
-                System.out.println(ex.getMessage());
-            }
-        }
-    }
-
-    public static void createNewTable() {
-        // SQLite connection string
-        String url = "jdbc:sqlite:C://sqlite/hollidays.db";
-
-        // SQL statement for creating a new table
-        String sql = "CREATE TABLE IF NOT EXISTS zeiten (datum DATETIME_INTERVAL_CODE, zeit INT NOT NULL);";
-
-        try{
-            Connection conn = DriverManager.getConnection(url);
-            Statement stmt = conn.createStatement();
-            stmt.execute(sql);
-        } catch (SQLException e) {
-            System.out.println("ö"+e.getMessage());
-        }
-    }
-
-    private static Connection connectToTable() {
-        // SQLite connection string
-        String url = "jdbc:sqlite:C://sqlite/hollidays.db";
-        Connection conn = null;
-        try {
-            conn = DriverManager.getConnection(url);
-        } catch (SQLException e) {
-            System.out.println("ä" + e.getMessage());
-        }
-        return conn;
-    }
-
-    public static void insert(int time) {
-        String sql = "INSERT INTO zeiten(datum, zeit) VALUES(?,?)";
-
-        try{
-            Connection conn = connectToTable();
-            LocalDateTime dateTime = LocalDateTime.now();
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setDate(1, java.sql.Date.valueOf(LocalDate.now()));
-            pstmt.setDouble(2, time);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            System.out.println("ü"+e.getMessage());
-        }
-    }
-
-    public static void selectAll(){
-        String sql = "SELECT * FROM zeiten";
-
-        try {
-            Connection conn = connectToTable();
-            Statement stmt  = conn.createStatement();
-            ResultSet rs    = stmt.executeQuery(sql);
-
-            // loop through the result set
-            while (rs.next()) {
-                System.out.println(
-                        rs.getDate("datum") + "\t" +
-                        rs.getInt("zeit"));
-                time.add(rs.getInt("zeit"));
-            }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -284,7 +200,7 @@ public class Programm extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        String mo="Monday", tu="Tuesday", we="Wednessday", th="Thursday", fr="Frayday";
+        String mo="Monday", tu="Tuesday", we="Wednessday", th="Thursday", fr="Friday";
 
         final NumberAxis yAxis = new NumberAxis();
         final CategoryAxis xAxis = new CategoryAxis();
@@ -308,5 +224,52 @@ public class Programm extends Application {
         barChart.getData().add(series1);
         stage.setScene(scene);
         stage.show();
+    }
+
+    public static String pwEinlesen(){
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\simma\\Documents\\Schule\\SWP\\MySQLPassword.txt"));
+            return br.readLine();
+        }catch (IOException e){
+            System.out.println("Password konnten nicht eingelesen werden");
+        }
+        return "";
+    }
+
+    public static boolean connectToMySql(){
+        try {
+            connection = DriverManager.getConnection(url,"admin",pwEinlesen());
+            Statement myStmt = connection.createStatement();
+            String tabelleErzeugen = "create table if not exists times(datum DATE, zeit INTEGER);";
+            myStmt.executeUpdate(tabelleErzeugen);
+            System.out.println("Datenbank verknüpft");
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public static void writeDataInDB(int time){
+        try {
+            Statement myStmt = connection.createStatement();
+            String writeData = "insert into times values(\'"+java.sql.Date.valueOf(LocalDate.now())+"\', "+time+")";
+            myStmt.executeUpdate(writeData);
+            System.out.println("Datenbank verknüpft");
+        } catch (SQLException e) {
+        e.printStackTrace();
+        }
+    }
+    public static void getDataFromDB(){
+        try {
+            Statement myStmt = connection.createStatement();
+            String writeData = "select * from times";
+            ResultSet rs = myStmt.executeQuery(writeData);
+            while (rs.next()){
+                System.out.println(rs.getDate("datum") + " " + rs.getInt("zeit"));
+                time.add(rs.getInt("zeit"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
