@@ -83,9 +83,6 @@ public class Programm extends Application {
         }
         System.out.println("Das Programm dauert duchschnittlich "+all/time.size()+" Millisekunden");
         launch(args);
-
-
-
     }
 
 
