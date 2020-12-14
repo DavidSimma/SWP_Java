@@ -4,28 +4,22 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 import javafx.application.Application;
+import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.chart.BarChart;
-import javafx.scene.chart.CategoryAxis;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
+import javafx.scene.chart.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import fxjava.*;
 
 public class Programm extends Application{
 
@@ -36,6 +30,8 @@ public class Programm extends Application{
     public static List<Double> open = new ArrayList<>();
     public static List<Double> high = new ArrayList<>();
     public static List<Double> low = new ArrayList<>();
+    public static List<LocalDate> date = new ArrayList<>();
+    public static List<Double> gleitenderDurchschnitt = new ArrayList<>();
 
 
     public static void main(String[] args) {
@@ -44,12 +40,13 @@ public class Programm extends Application{
         System.out.print("Firmenabkürzung angeben: ");
         String firma = reader.next();
 
-        String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + firma+ "&apikey=" + key;
+        String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + firma+ "&outputsize=full&&apikey=" + key;
         //System.out.println(url);
         //System.out.println(closeDatenEinlesen(url));
 
         connectToMySql(firma);
         datenEinlesenUndSchreiben(url, firma);
+        durchschnitt();
 
         launch(args);
     }
@@ -70,7 +67,7 @@ public class Programm extends Application{
     public static void datenEinlesenUndSchreiben(String url, String firma){
         double temp1, temp2, temp3, temp4;
         JSONObject jsonObject = Jsoneinlesen(url);
-        for (LocalDate i = LocalDate.now().minusDays(1); i.isAfter(LocalDate.now().minusDays(100)); i=i.minusDays(1)){
+        for (LocalDate i = LocalDate.now().minusDays(1); i.isAfter(LocalDate.now().minusDays(500)); i=i.minusDays(1)){
             try{
                 temp1 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("4. close");
                 close.add(temp1);
@@ -80,6 +77,7 @@ public class Programm extends Application{
                 high.add(temp3);
                 temp4 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("3. low");
                 low.add(temp4);
+                date.add(i);
                 writeDataInDB(i, firma, temp1, temp2, temp3, temp4);
             }
             catch (JSONException e){
@@ -100,11 +98,35 @@ public class Programm extends Application{
         return "";
     }
 
+    static void durchschnitt(){
+        int count = 0;
+        double wert = 0, x, avg = 0;
+        for(int i = 0; i <= date.size()-1; i++){
+            count++;
+
+                wert+=close.get(i);
+                avg = wert/count;
+                gleitenderDurchschnitt.add(avg);
+
+            /*
+            if(count > 20) {
+                x = close.get(i-20);
+                wert = wert - x;
+                wert = wert + close.get(i);
+                avg = wert/20;
+                gleitenderDurchschnitt.add(avg);
+            }
+
+             */
+        }
+        Collections.reverse(gleitenderDurchschnitt);
+    }
+
     public static boolean connectToMySql(String firma){
         try {
             connection = DriverManager.getConnection(DBurl,"admin",txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\MySQLPassword.txt"));
             Statement myStmt = connection.createStatement();
-            String tabelleErzeugen = "create table if not exists " + firma +"(datum DATE, open DOUBLE, close DOUBLE, high DOUBLE, low DOUBLE);";
+            String tabelleErzeugen = "create table if not exists " + firma +"(datum DATE primary key, open DOUBLE, close DOUBLE, high DOUBLE, low DOUBLE);";
             myStmt.executeUpdate(tabelleErzeugen);
             System.out.println("Datenbank verknüpft");
             return true;
@@ -125,35 +147,53 @@ public class Programm extends Application{
     }
 
     @Override
-    public void start(Stage stage) throws Exception {
-        CandleStickChart candleStickChart = new CandleStickChart("Aktienwerte der letzen 100 Tage", buildBars());
-        Scene scene = new Scene(candleStickChart);
-        scene.getStylesheets().add("/styles/CandleStickChartStyles.css");
+    public void start(Stage primaryStage) {
+        try {
 
-        stage.setTitle("JavaFX and Maven");
-        stage.setScene(scene);
-        stage.show();
+            final CategoryAxis xAxis = new CategoryAxis();
+            final NumberAxis yAxis = new NumberAxis();
+            xAxis.setLabel("Datum");
+            yAxis.setLabel("close-Wert");
+            final LineChart<String, Number> lineChart = new LineChart<String, Number>(xAxis, yAxis);
+            lineChart.setTitle("Aktienkurs");
 
-        candleStickChart.setYAxisFormatter(new DecimalAxisFormatter("#000.00"));
-    }
+            XYChart.Series<String, Number> aktienDaten = new XYChart.Series();
+            aktienDaten.setName("Close-Werte");
+            for (int i = 0; i < close.size()-1; i++) {
+                aktienDaten.getData().add(new XYChart.Data(date.get(i).toString(), close.get(i)));
+            }
+            XYChart.Series<String, Number> durchschnitt = new XYChart.Series();
 
-    public List<BarData> buildBars() {
+            durchschnitt.setName("gleitender Durchschnitt");
+            for (int i = 0; i < gleitenderDurchschnitt.size()-1; i++) {
+                durchschnitt.getData().add(new XYChart.Data(date.get(i).toString(), gleitenderDurchschnitt.get(i)));
+            }
 
 
-        final List<BarData> bars = new ArrayList<>();
-        GregorianCalendar now = new GregorianCalendar();
-        for (int i = 0; i < open.size(); i++) {
-            double _open = open.get(i);
-            double _close = close.get(i);
-            double _high = high.get(i);
-            double _low = low.get(i);
 
-            BarData bar = new BarData((GregorianCalendar) now.clone(), _open, _high, _low, _close, 1);
-            //
-            now.add(Calendar.DATE, +1);
-            bars.add(bar);
+            Scene scene = new Scene(lineChart, 800, 600);
+            lineChart.getData().add(aktienDaten);
+            lineChart.getData().add(durchschnitt);
+
+            for(int i = 0; i <= aktienDaten.getData().size()-1; i++) {
+                if(close.get(i) < gleitenderDurchschnitt.get(i)) {
+                    aktienDaten.getData().get(i).nodeProperty().get().setStyle("-fx-stroke: #ff0000; ");
+                }
+                if(close.get(i) > gleitenderDurchschnitt.get(i)) {
+                    aktienDaten.getData().get(i).nodeProperty().get().setStyle("-fx-stroke: #15ff00; ");
+                }
+
+
+            }
+
+
+            lineChart.setCreateSymbols(false);
+
+            primaryStage.setScene(scene);
+            primaryStage.show();
+        } catch(Exception e) {
+            e.printStackTrace();
         }
-        return bars;
     }
 
 }
