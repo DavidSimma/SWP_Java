@@ -6,15 +6,11 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.*;
 
 import javafx.application.Application;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.chart.*;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import org.apache.commons.io.IOUtils;
@@ -36,13 +32,10 @@ public class Programm extends Application{
 
     public static void main(String[] args) {
         String key = txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\AktienDatenPW.txt");
-        //System.out.println(key);
         System.out.print("Firmenabkürzung angeben: ");
         String firma = reader.next();
 
         String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + firma+ "&outputsize=full&&apikey=" + key;
-        //System.out.println(url);
-        //System.out.println(closeDatenEinlesen(url));
 
         connectToMySql(firma);
         datenEinlesenUndSchreiben(url, firma);
@@ -81,11 +74,8 @@ public class Programm extends Application{
                 writeDataInDB(i, firma, temp1, temp2, temp3, temp4);
             }
             catch (JSONException e){
-
             }
-
         }
-
     }
 
     public static String txtEinlesen(String url){
@@ -101,23 +91,13 @@ public class Programm extends Application{
     static void durchschnitt(){
         int count = 0;
         double wert = 0, x, avg = 0;
-        for(int i = 0; i <= date.size()-1; i++){
+        for(int i = 0; i < date.size(); i++){
             count++;
 
-                wert+=close.get(i);
-                avg = wert/count;
-                gleitenderDurchschnitt.add(avg);
+            wert+=close.get(i);
+            avg = wert/count;
+            gleitenderDurchschnitt.add(avg);
 
-            /*
-            if(count > 20) {
-                x = close.get(i-20);
-                wert = wert - x;
-                wert = wert + close.get(i);
-                avg = wert/20;
-                gleitenderDurchschnitt.add(avg);
-            }
-
-             */
         }
         Collections.reverse(gleitenderDurchschnitt);
     }
@@ -169,23 +149,16 @@ public class Programm extends Application{
                 durchschnitt.getData().add(new XYChart.Data(date.get(i).toString(), gleitenderDurchschnitt.get(i)));
             }
 
-
-
             Scene scene = new Scene(lineChart, 800, 600);
             lineChart.getData().add(aktienDaten);
             lineChart.getData().add(durchschnitt);
 
-            for(int i = 0; i <= aktienDaten.getData().size()-1; i++) {
-                if(close.get(i) < gleitenderDurchschnitt.get(i)) {
-                    aktienDaten.getData().get(i).nodeProperty().get().setStyle("-fx-stroke: #ff0000; ");
-                }
-                if(close.get(i) > gleitenderDurchschnitt.get(i)) {
-                    aktienDaten.getData().get(i).nodeProperty().get().setStyle("-fx-stroke: #15ff00; ");
-                }
-
-
+            if(close.get(aktienDaten.getData().size()-1) < gleitenderDurchschnitt.get(aktienDaten.getData().size()-1)) {
+                aktienDaten.getData().get(aktienDaten.getData().size()-1).nodeProperty().get().setStyle("-fx-stroke: #ff0000; ");
             }
-
+            if(close.get(aktienDaten.getData().size()-1) > gleitenderDurchschnitt.get(aktienDaten.getData().size()-1)) {
+                aktienDaten.getData().get(aktienDaten.getData().size()-1).nodeProperty().get().setStyle("-fx-stroke: #15ff00; ");
+            }
 
             lineChart.setCreateSymbols(false);
 
@@ -195,5 +168,4 @@ public class Programm extends Application{
             e.printStackTrace();
         }
     }
-
 }
