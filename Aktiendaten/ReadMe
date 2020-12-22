@@ -1,0 +1,4 @@
+Ziel:
+Durch Angabe der Firmenkürzel wird der aktuelle Aktienkurs in grafischer Form dargestellt. Dabei wird einerseits ein Graph der Close-Werte angezeigt, sowie ein Graph des gleitenden
+Mittelwertes. Die Close-Werte werden außerdem mit dem zugehörigen Datum in eine Datenbank abgespeichert.
+
