@@ -154,10 +154,10 @@ public class Programm extends Application{
             lineChart.getData().add(durchschnitt);
 
             if(close.get(aktienDaten.getData().size()-1) < gleitenderDurchschnitt.get(aktienDaten.getData().size()-1)) {
-                aktienDaten.getData().get(aktienDaten.getData().size()-1).nodeProperty().get().setStyle("-fx-stroke: #ff0000; ");
+                aktienDaten.nodeProperty().get().setStyle("-fx-stroke: #ff0000; ");
             }
             if(close.get(aktienDaten.getData().size()-1) > gleitenderDurchschnitt.get(aktienDaten.getData().size()-1)) {
-                aktienDaten.getData().get(aktienDaten.getData().size()-1).nodeProperty().get().setStyle("-fx-stroke: #15ff00; ");
+                aktienDaten.nodeProperty().get().setStyle("-fx-stroke: #15ff00; ");
             }
 
             lineChart.setCreateSymbols(false);
