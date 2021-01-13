@@ -39,6 +39,7 @@ public class Programm extends Application{
 
         connectToMySql(firma);
         datenEinlesenUndSchreiben(url, firma);
+        getDataFromDB(firma);
         durchschnitt();
 
         launch(args);
@@ -69,6 +70,7 @@ public class Programm extends Application{
                 temp3 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("2. high");
                 high.add(temp3);
                 temp4 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("3. low");
+                low.add(temp4);
                 low.add(temp4);
                 date.add(i);
                 writeDataInDB(i, firma, temp1, temp2, temp3, temp4);
@@ -120,10 +122,38 @@ public class Programm extends Application{
             Statement myStmt = connection.createStatement();
             String writeData = "insert ignore into "+ firma +"(datum, open, close, high, low) values(\'"+date+"\', "+open+","+close+","+high+","+low+")";
             myStmt.executeUpdate(writeData);
-            System.out.println("Datenbank verknüpft");
+            System.out.println("Datensatz eingetragen");
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void getDataFromDB(String firma){
+        clearLists();
+        try {
+            Statement myStmt = connection.createStatement();
+            String querry = "SELECT * from " + firma;
+            ResultSet rs = myStmt.executeQuery(querry);
+            while (rs.next()){
+                date.add(LocalDate.parse(rs.getString("datum")));
+                open.add(rs.getDouble("open"));
+                close.add(rs.getDouble("close"));
+                high.add(rs.getDouble("high"));
+                low.add(rs.getDouble("low"));
+                }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public static void clearLists(){
+        date.clear();
+        open.clear();
+        close.clear();
+        high.clear();
+        low.clear();
     }
 
     @Override
