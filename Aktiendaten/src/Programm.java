@@ -90,18 +90,24 @@ public class Programm extends Application{
         return "";
     }
 
-    static void durchschnitt(){
+    static void durchschnitt() {
         int count = 0;
-        double wert = 0, x, avg = 0;
-        for(int i = 0; i < date.size(); i++){
+        double wert = 0, x,avg;
+        for(int i = 0; i <= close.size()-1; i++){
             count++;
-
-            wert+=close.get(i);
-            avg = wert/count;
-            gleitenderDurchschnitt.add(avg);
-
+            if(count <= 200){
+                wert = wert + close.get(i);
+                avg = wert/count;
+                gleitenderDurchschnitt.add(avg);
+            }
+            if(count > 200) {
+                x = close.get(i-200);
+                wert = wert - x;
+                wert = wert + close.get(i);
+                avg = wert/200;
+                gleitenderDurchschnitt.add(avg);
+            }
         }
-        Collections.reverse(gleitenderDurchschnitt);
     }
 
     public static boolean connectToMySql(String firma){
