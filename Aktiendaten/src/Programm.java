@@ -172,6 +172,7 @@ public class Programm extends Application{
             for (int i = 0; i < close.size()-1; i++) {
                 aktienDaten.getData().add(new XYChart.Data(date.get(i).toString(), close.get(i)));
             }
+            
             XYChart.Series<String, Number> durchschnitt = new XYChart.Series();
 
             durchschnitt.setName("gleitender Durchschnitt");
@@ -182,12 +183,14 @@ public class Programm extends Application{
             Scene scene = new Scene(lineChart, 800, 600);
             lineChart.getData().add(aktienDaten);
             lineChart.getData().add(durchschnitt);
+            aktienDaten.nodeProperty().get().setStyle("-fx-stroke: #000000; ");
+            durchschnitt.nodeProperty().get().setStyle("-fx-stroke: #FFFFFF; ");
 
             if(close.get(aktienDaten.getData().size()-1) < gleitenderDurchschnitt.get(aktienDaten.getData().size()-1)) {
-                aktienDaten.nodeProperty().get().setStyle("-fx-stroke: #ff0000; ");
+                scene.getStylesheets().add("redChart.css");
             }
             if(close.get(aktienDaten.getData().size()-1) > gleitenderDurchschnitt.get(aktienDaten.getData().size()-1)) {
-                aktienDaten.nodeProperty().get().setStyle("-fx-stroke: #15ff00; ");
+                scene.getStylesheets().add("greenChart.css");
             }
 
             lineChart.setCreateSymbols(false);
