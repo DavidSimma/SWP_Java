@@ -1,0 +1,23 @@
+Ziel:
+  Durch Angabe der Firmenkürzel wird der aktuelle Aktienkurs in grafischer Form dargestellt. Dabei wird einerseits ein Graph der Close-Werte angezeigt, sowie ein Graph des gleitenden
+  Mittelwertes. Die Close-Werte werden außerdem mit dem zugehörigen Datum in eine Datenbank abgespeichert.
+
+Installation:
+  Hierfür geben Sie in die Git Bash Command Line erst ihren gewünsten Speicherort ein und anschließend den Befehl "git clone github.com/DavidSimma/SWP_Java"
+  Hierbei können SIe das Programm "Binärsuche" löschen oder ignorieren!
+  
+Wie führe ich es aus?
+  Für die Ausführung ist das Programm MySQL erforderlich, sowie einen Benutzer "admin" (kann im Programm beliebig geändert werden; das Password des Benutzers wird extern ausgelesen)
+  und eine Datenbank "aktiendaten".
+  
+Ergebnis:
+
+<img src="https://user-images.githubusercontent.com/56593280/105968663-a761fb80-6087-11eb-95e8-e0c74331d8cb.PNG">
+
+  Als Ergebnis erscheint ein Graph, welcher einerseits die Close-Werte, als auch den gleitenden Mittelwert der letzten 200 Werte anzeigt. Der Hintergrund der Graphen färbt sich,
+  wenn die Close-Werte höher als der Durchschnitt ist, grün und ansonsten rot.
+  
+Was brauche ich dafür?
+  - IntelliJ
+  - MySQL Workbench
+  - einen API-Key von "alphavantage"
