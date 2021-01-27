@@ -11,7 +11,9 @@ Wie führe ich es aus?
   und eine Datenbank "aktiendaten".
   
 Ergebnis:
+
 ![Unbenannt](https://user-images.githubusercontent.com/56593280/105968663-a761fb80-6087-11eb-95e8-e0c74331d8cb.PNG)
+
   Als Ergebnis erscheint ein Graph, welcher einerseits die Close-Werte, als auch den gleitenden Mittelwert der letzten 200 Werte anzeigt. Der Hintergrund der Graphen färbt sich,
   wenn die Close-Werte höher als der Durchschnitt ist, grün und ansonsten rot.
   
