@@ -33,9 +33,9 @@ public class Programm extends Application{
     public static void main(String[] args) {
         String key = txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\AktienDatenPW.txt");
         System.out.print("Firmenabkürzung angeben: ");
-        String firma = reader.next();
+        String firma = reader.next().toUpperCase();
 
-        String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + firma+ "&outputsize=full&&apikey=" + key;
+        String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + firma+ "&outputsize=full&apikey=" + key;
 
         connectToMySql(firma);
         datenEinlesenUndSchreiben(url, firma);
@@ -112,7 +112,7 @@ public class Programm extends Application{
 
     public static boolean connectToMySql(String firma){
         try {
-            connection = DriverManager.getConnection(DBurl,"admin",txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\MySQLPassword.txt"));
+            connection = DriverManager.getConnection(DBurl,"user",txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\MySQLPassword.txt"));
             Statement myStmt = connection.createStatement();
             String tabelleErzeugen = "create table if not exists " + firma +"(datum DATE primary key, open DOUBLE, close DOUBLE, high DOUBLE, low DOUBLE);";
             myStmt.executeUpdate(tabelleErzeugen);
@@ -198,6 +198,10 @@ public class Programm extends Application{
             if(close.get(aktienDaten.getData().size()-1) > gleitenderDurchschnitt.get(aktienDaten.getData().size()-1)) {
                 scene.getStylesheets().add("greenChart.css");
             }
+
+            yAxis.setAutoRanging(false);
+            yAxis.setLowerBound(Collections.min(close) * 0.8);
+            yAxis.setUpperBound(Collections.max(close) * 1.2);
 
             lineChart.setCreateSymbols(false);
 
