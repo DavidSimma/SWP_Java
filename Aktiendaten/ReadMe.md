@@ -20,5 +20,6 @@ Was brauche ich dafür?
   - MySQL Workbench
   - einen API-Key von "alphavantage"
 
-Wie führe ich das Program aus?
+Wie führe ich das Program aus? 
+
   Nach dem Download des Programms finden Sie eine CMD-Befehl.cmd Datei, welche entweder manuell oder automatisch ausgeführt werden kann. Anschließend speichert das Programm die     verschiedenne Aktienkurse in einen Ordner ab, welcher im Programmcode geändert werden kann!
