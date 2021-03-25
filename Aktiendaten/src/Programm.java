@@ -29,9 +29,6 @@ public class Programm extends Application{
     public static Connection connection;
     public static String DBurl = "jdbc:mysql://localhost:3306/aktiendaten?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
     public static List<Double> close = new ArrayList<>();
-    public static List<Double> open = new ArrayList<>();
-    public static List<Double> high = new ArrayList<>();
-    public static List<Double> low = new ArrayList<>();
     public static List<LocalDate> date = new ArrayList<>();
     public static List<Double> gleitenderDurchschnitt = new ArrayList<>();
     public static String firma;
@@ -40,21 +37,6 @@ public class Programm extends Application{
 
     public static void main(String[] args) {
         System.out.println(firmen);
-        /*for(int i = 0; i <= firmen.size(); i++) {
-            System.out.println(i);
-            firma = firmen.get(i);
-
-            String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + firma + "&outputsize=full&apikey=" + key;
-
-            connectToMySql(firma);
-            datenEinlesenUndSchreiben(url, firma);
-            getDataFromDB(firma);
-            durchschnitt();
-            launch();
-
-        }
-
-         */
         launch(args);
     }
 
@@ -72,26 +54,20 @@ public class Programm extends Application{
     }
 
     public static void datenEinlesenUndSchreiben(String url, String firma){
-        double temp1, temp2, temp3, temp4;
+        double temp1, temp2;
         JSONObject jsonObject = Jsoneinlesen(url);
         for (LocalDate i = LocalDate.now().minusDays(1); i.isAfter(LocalDate.now().minusDays(500)); i=i.minusDays(1)){
             try{
-                temp1 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("4. close");
+                temp1 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("5. adjusted close");
                 close.add(temp1);
-                temp2 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("1. open");
-                open.add(temp2);
-                temp3 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("2. high");
-                high.add(temp3);
-                temp4 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("3. low");
-                low.add(temp4);
-                low.add(temp4);
                 date.add(i);
-                writeDataInDB(i, firma, temp1, temp2, temp3, temp4);
+                writeDataInDB(i, firma, temp1);
             }
             catch (JSONException e){
             }
         }
     }
+
 
     public static List<String> txtEinlesen(String url){
         try {
@@ -133,7 +109,7 @@ public class Programm extends Application{
         try {
             connection = DriverManager.getConnection(DBurl,"user",txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\MySQLPassword.txt").get(0));
             Statement myStmt = connection.createStatement();
-            String tabelleErzeugen = "create table if not exists " + firma +"(datum DATE primary key, open DOUBLE, close DOUBLE, high DOUBLE, low DOUBLE);";
+            String tabelleErzeugen = "create table if not exists " + firma +"(datum DATE primary key, close DOUBLE);";
             myStmt.executeUpdate(tabelleErzeugen);
             System.out.println("Datenbank verknüpft");
             return true;
@@ -142,10 +118,10 @@ public class Programm extends Application{
         }
         return false;
     }
-    public static void writeDataInDB(LocalDate date, String firma, double open, double close, double high, double low){
+    public static void writeDataInDB(LocalDate date, String firma, double close){
         try {
             Statement myStmt = connection.createStatement();
-            String writeData = "insert ignore into "+ firma +"(datum, open, close, high, low) values(\'"+date+"\', "+open+","+close+","+high+","+low+")";
+            String writeData = "insert ignore into "+ firma +"(datum, close) values(\'"+date+"\', "+close+")";
             myStmt.executeUpdate(writeData);
             System.out.println("Datensatz eingetragen");
         } catch (SQLException e) {
@@ -155,17 +131,16 @@ public class Programm extends Application{
 
     public static void getDataFromDB(String firma){
         clearLists();
+        double temp;
+        int temp2;
         try {
-            Statement myStmt = connection.createStatement();
+            Statement myStmt = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             String querry = "SELECT * from " + firma;
             ResultSet rs = myStmt.executeQuery(querry);
-            while (rs.next()){
+            while(rs.next()){
                 date.add(LocalDate.parse(rs.getString("datum")));
-                open.add(rs.getDouble("open"));
                 close.add(rs.getDouble("close"));
-                high.add(rs.getDouble("high"));
-                low.add(rs.getDouble("low"));
-                }
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -175,10 +150,7 @@ public class Programm extends Application{
 
     public static void clearLists(){
         date.clear();
-        open.clear();
         close.clear();
-        high.clear();
-        low.clear();
     }
 
     @Override
@@ -189,7 +161,7 @@ public class Programm extends Application{
                 System.out.println(firmen.get(count));
                 firma = firmen.get(count);
 
-                String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + firma + "&outputsize=full&apikey=" + key;
+                String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + firma + "&outputsize=full&apikey=" + key;
 
                 connectToMySql(firma);
                 datenEinlesenUndSchreiben(url, firma);
@@ -202,7 +174,7 @@ public class Programm extends Application{
                 xAxis.setLabel("Datum");
                 yAxis.setLabel("close-Wert");
                 final LineChart<String, Number> lineChart = new LineChart<String, Number>(xAxis, yAxis);
-                lineChart.setTitle("Aktienkurs");
+                lineChart.setTitle("Aktienkurs - " + firma);
 
                 XYChart.Series<String, Number> aktienDaten = new XYChart.Series();
                 aktienDaten.setName("Close-Werte");
@@ -211,7 +183,6 @@ public class Programm extends Application{
                 }
 
                 XYChart.Series<String, Number> durchschnitt = new XYChart.Series();
-
                 durchschnitt.setName("gleitender Durchschnitt");
                 for (int i = 0; i < gleitenderDurchschnitt.size(); i++) {
                     durchschnitt.getData().add(new XYChart.Data(date.get(i).toString(), gleitenderDurchschnitt.get(i)));
@@ -223,10 +194,10 @@ public class Programm extends Application{
                 aktienDaten.nodeProperty().get().setStyle("-fx-stroke: #000000; ");
                 durchschnitt.nodeProperty().get().setStyle("-fx-stroke: #FFFFFF; ");
 
-                if (close.get(aktienDaten.getData().size() - 1) < gleitenderDurchschnitt.get(aktienDaten.getData().size() - 1)) {
+                if (close.get(aktienDaten.getData().size()) <= gleitenderDurchschnitt.get(aktienDaten.getData().size())) {
                     scene.getStylesheets().add("redChart.css");
                 }
-                if (close.get(aktienDaten.getData().size() - 1) > gleitenderDurchschnitt.get(aktienDaten.getData().size() - 1)) {
+                if (close.get(aktienDaten.getData().size()) > gleitenderDurchschnitt.get(aktienDaten.getData().size())) {
                     scene.getStylesheets().add("greenChart.css");
                 }
 
