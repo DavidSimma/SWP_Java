@@ -61,7 +61,6 @@ public class Programm extends Application{
                 temp1 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("5. adjusted close");
                 close.add(temp1);
                 date.add(i);
-                writeDataInDB(i, firma, temp1);
             }
             catch (JSONException e){
             }
@@ -84,22 +83,24 @@ public class Programm extends Application{
         return null;
     }
 
-    static void durchschnitt() {
+    static void durchschnitt(int schnitt) {
         gleitenderDurchschnitt.clear();
         int count = 0;
         double wert = 0, x,avg;
-        for(int i = 0; i <= close.size()-1; i++){
+        for(int i = 0; i < close.size(); i++){
             count++;
-            if(count <= 200){
-                wert = wert + close.get(i);
+            if(count <= schnitt){
+                wert += close.get(i);
                 avg = wert/count;
+                Math.round(avg*100.00/100.00);
                 gleitenderDurchschnitt.add(avg);
             }
-            if(count > 200) {
-                x = close.get(i-200);
-                wert = wert - x;
-                wert = wert + close.get(i);
-                avg = wert/200;
+            if(count > schnitt) {
+                x = close.get(i-schnitt);
+                wert -= x;
+                wert += close.get(i);
+                avg = wert/schnitt;
+                Math.round(avg*100.00/100.00);
                 gleitenderDurchschnitt.add(avg);
             }
         }
@@ -109,7 +110,7 @@ public class Programm extends Application{
         try {
             connection = DriverManager.getConnection(DBurl,"user",txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\MySQLPassword.txt").get(0));
             Statement myStmt = connection.createStatement();
-            String tabelleErzeugen = "create table if not exists " + firma +"(datum DATE primary key, close DOUBLE);";
+            String tabelleErzeugen = "create table if not exists " + firma +"(datum DATE primary key, close DOUBLE, average DOUBLE);";
             myStmt.executeUpdate(tabelleErzeugen);
             System.out.println("Datenbank verknüpft");
             return true;
@@ -118,10 +119,11 @@ public class Programm extends Application{
         }
         return false;
     }
-    public static void writeDataInDB(LocalDate date, String firma, double close){
+    public static void writeDataInDB(LocalDate date, String firma, double close, double average){
         try {
             Statement myStmt = connection.createStatement();
-            String writeData = "insert ignore into "+ firma +"(datum, close) values(\'"+date+"\', "+close+")";
+            String writeData = "insert into "+ firma +"(datum, close, average) values(\'"+date+"\', "+close+", "+average+") " +
+                    "on duplicate key update close = "+close+", average = "+average+";";
             myStmt.executeUpdate(writeData);
             System.out.println("Datensatz eingetragen");
         } catch (SQLException e) {
@@ -140,6 +142,7 @@ public class Programm extends Application{
             while(rs.next()){
                 date.add(LocalDate.parse(rs.getString("datum")));
                 close.add(rs.getDouble("close"));
+                gleitenderDurchschnitt.add(rs.getDouble("average"));
             }
 
         } catch (SQLException e) {
@@ -151,6 +154,7 @@ public class Programm extends Application{
     public static void clearLists(){
         date.clear();
         close.clear();
+        gleitenderDurchschnitt.clear();
     }
 
     @Override
@@ -158,6 +162,7 @@ public class Programm extends Application{
 
         try {
             for(int count = 0; count < firmen.size(); count++) {
+                clearLists();
                 System.out.println(firmen.get(count));
                 firma = firmen.get(count);
 
@@ -165,8 +170,13 @@ public class Programm extends Application{
 
                 connectToMySql(firma);
                 datenEinlesenUndSchreiben(url, firma);
+                durchschnitt(200);
+                for(int i=0; i<close.size(); i++) {
+                    writeDataInDB(date.get(i), firma, close.get(i), gleitenderDurchschnitt.get(i));
+                }
+
+
                 getDataFromDB(firma);
-                durchschnitt();
 
 
                 final CategoryAxis xAxis = new CategoryAxis();
