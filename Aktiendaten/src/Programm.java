@@ -6,6 +6,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.*;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -25,15 +26,15 @@ import javax.imageio.ImageIO;
 
 public class Programm extends Application{
 
-    public static Scanner reader = new Scanner(System.in);
+    private static Scanner reader = new Scanner(System.in);
     public static Connection connection;
     public static String DBurl = "jdbc:mysql://localhost:3306/aktiendaten?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
-    public static List<Double> close = new ArrayList<>();
-    public static List<LocalDate> date = new ArrayList<>();
-    public static List<Double> gleitenderDurchschnitt = new ArrayList<>();
-    public static String firma;
-    public static List<String> firmen = txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\Aktien\\Aktienkürzel.txt");
-    public static String key = txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\Aktien\\AktienDatenPW.txt").get(0);
+    private static List<Double> close = new ArrayList<>();
+    private static List<LocalDate> date = new ArrayList<>();
+    private static List<Double> gleitenderDurchschnitt = new ArrayList<>();
+    private static String firma;
+    private static List<String> firmen = txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\Aktien\\Aktienkürzel.txt");
+    private static String key = txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\Aktien\\AktienDatenPW.txt").get(0);
 
     public static void main(String[] args) {
         System.out.println(firmen);
@@ -54,11 +55,14 @@ public class Programm extends Application{
     }
 
     public static void datenEinlesenUndSchreiben(String url, String firma){
-        double temp1, temp2;
+        double temp1;
         JSONObject jsonObject = Jsoneinlesen(url);
-        for (LocalDate i = LocalDate.now().minusDays(1); i.isAfter(LocalDate.now().minusDays(500)); i=i.minusDays(1)){
+        for (LocalDate i = LocalDate.now().minusDays(1); i.isAfter(LocalDate.now().minusDays(4200)); i=i.minusDays(1)){
             try{
                 temp1 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("5. adjusted close");
+                NumberFormat n = NumberFormat.getInstance();
+                n.setMaximumFractionDigits(2);
+                n.format(temp1);
                 close.add(temp1);
                 date.add(i);
             }
@@ -92,7 +96,9 @@ public class Programm extends Application{
             if(count <= schnitt){
                 wert += close.get(i);
                 avg = wert/count;
-                Math.round(avg*100.00/100.00);
+                NumberFormat n = NumberFormat.getInstance();
+                n.setMaximumFractionDigits(2);
+                n.format(avg);
                 gleitenderDurchschnitt.add(avg);
             }
             if(count > schnitt) {
@@ -100,7 +106,9 @@ public class Programm extends Application{
                 wert -= x;
                 wert += close.get(i);
                 avg = wert/schnitt;
-                Math.round(avg*100.00/100.00);
+                NumberFormat n = NumberFormat.getInstance();
+                n.setMaximumFractionDigits(2);
+                n.format(avg);
                 gleitenderDurchschnitt.add(avg);
             }
         }
@@ -168,15 +176,16 @@ public class Programm extends Application{
 
                 String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + firma + "&outputsize=full&apikey=" + key;
 
-                connectToMySql(firma);
-                datenEinlesenUndSchreiben(url, firma);
-                durchschnitt(200);
-                for(int i=0; i<close.size(); i++) {
-                    writeDataInDB(date.get(i), firma, close.get(i), gleitenderDurchschnitt.get(i));
+                if(connectToMySql(firma)) {
+                    datenEinlesenUndSchreiben(url, firma);
+                    durchschnitt(200);
+                    for (int i = 0; i < close.size(); i++) {
+                        writeDataInDB(date.get(i), firma, close.get(i), gleitenderDurchschnitt.get(i));
+                    }
+
+
+                    getDataFromDB(firma);
                 }
-
-
-                getDataFromDB(firma);
 
 
                 final CategoryAxis xAxis = new CategoryAxis();
