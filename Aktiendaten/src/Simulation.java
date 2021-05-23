@@ -4,27 +4,36 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.DayOfWeek;
+import java.util.Scanner;
 
 public class Simulation {
-
-
+    private static Scanner reader = new Scanner(System.in);
 
     public static void main(String[] args) {
-        System.out.println(aktionBeiSchnitt("aapl", 20000));
+        System.out.println("Verfügbare Firmen: " + Programm.txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\Aktien\\Aktienkürzel.txt"));
+        System.out.print("Firma: ");
+        String firma = reader.next().toLowerCase();
+        System.out.print("Startdepot: ");
+        double depot = reader.nextDouble();
+        LocalDate startdate = LocalDate.of(2010,1,1);
+
+
+        System.out.println(aktionBeiSchnitt(firma, depot, startdate));
     }
-    public static double aktionBeiSchnitt(String firma, double depot){
-        String method = "Schnitt", Simulationfirma;
-        connectToMySql(firma, method, depot);
-        Simulationfirma = firma + method;
+    public static double aktionBeiSchnitt(String firma, double depot, LocalDate startdate){
+        String method = "Schnitt", simulationsFirma;
+        ResultSet rs;
+        connectToMySql(firma, method, depot, startdate);
+        simulationsFirma = firma + method;
         try {
             Statement myStmt = Programm.connection.createStatement();
-            for(LocalDate ld = LocalDate.of(2010,1,1); ld.isBefore(LocalDate.now()); ld=ld.plusDays(1)){
+            for(LocalDate ld = startdate; ld.isBefore(LocalDate.now()); ld=ld.plusDays(1)){
                 System.out.println(ld);
                 if(börsentag(ld)){
                     String event = "";
                     double dep=0, shares=0;
-                    String sellOrBuy = "select * from "+Simulationfirma+" order by datum desc limit 1;";
-                    ResultSet rs = myStmt.executeQuery(sellOrBuy);
+                    String sellOrBuy = "select * from "+simulationsFirma+" order by datum desc limit 1;";
+                    rs = myStmt.executeQuery(sellOrBuy);
                     System.out.println("Datenbank-Aufruf-simu");
                     while(rs.next()){
                         event = rs.getString("event");
@@ -37,11 +46,11 @@ public class Simulation {
                         if(!ld.isEqual(LocalDate.now().minusDays(1))){
                             double close = 0, avg = 0;
                             String getValues = "select * from "+firma+" where datum = \'"+ld+"\';";
-                            ResultSet rss = myStmt.executeQuery(getValues);
+                            rs = myStmt.executeQuery(getValues);
                             System.out.println("Datenbank-Aufruf-ori-s");
-                            while (rss.next()){
-                                close = rss.getDouble("close");
-                                avg = rss.getDouble("average");
+                            while (rs.next()){
+                                close = rs.getDouble("close");
+                                avg = rs.getDouble("average");
                             }
                             System.out.println(close);
                             if(close > avg){
@@ -53,7 +62,7 @@ public class Simulation {
                                     share = Math.floor(dep/close);
                                     depo = dep%close;
                                 }
-                                String insertBuy = "insert into "+Simulationfirma+" values(\'"+ld+"\', \'buy\'"+share+", "+depo+");";
+                                String insertBuy = "insert ignore into "+simulationsFirma+" values(\'"+ld+"\', \'buy\', "+share+", "+depo+");";
                                 myStmt.executeUpdate(insertBuy);
                                 System.out.println("Datenbank-Eintrag");
                             }
@@ -61,16 +70,16 @@ public class Simulation {
                     }else if(event.equals("buy")){
                         double close = 0, avg = 0;
                         String getValues = "select * from "+firma+" where datum = \'"+ld+"\';";
-                        ResultSet rss = myStmt.executeQuery(getValues);
+                        rs = myStmt.executeQuery(getValues);
                         System.out.println("Datenbank-Aufruf-ori-b");
-                        while (rss.next()){
-                            close = rss.getDouble("close");
-                            avg = rss.getDouble("average");
+                        while (rs.next()){
+                            close = rs.getDouble("close");
+                            avg = rs.getDouble("average");
                         }
                         if(close < avg){
                             double depo;
                             depo = (close*shares)+dep;
-                            String insertBuy = "insert into "+Simulationfirma+" values(\'"+ld+"\', \'buy\', 0, "+depo+");";
+                            String insertBuy = "insert ignore into "+simulationsFirma+" values(\'"+ld+"\', \'sell\', 0, "+depo+");";
                             myStmt.executeUpdate(insertBuy);
                             System.out.println("Datenbank-Eintrag");
                         }
@@ -79,12 +88,12 @@ public class Simulation {
 
                 }
             }
-            String endDepot = "select * from "+Simulationfirma+" order by datum desc limit 1";
-            ResultSet ress = myStmt.executeQuery(endDepot);
+            String endDepot = "select * from "+simulationsFirma+" order by datum desc limit 1";
+            rs = myStmt.executeQuery(endDepot);
             System.out.println("Datenbank-Aufruf");
             double endDepo=0;
-            while (ress.next()){
-                endDepo = ress.getDouble("depot");
+            while (rs.next()){
+                endDepo = rs.getDouble("depot");
             }
             return endDepo;
 
@@ -126,13 +135,13 @@ public class Simulation {
         return true;
     }
 
-    public static boolean connectToMySql(String firma, String method, double depot){
+    public static boolean connectToMySql(String firma, String method, double depot, LocalDate startdate){
         try {
             Programm.connection = DriverManager.getConnection(Programm.DBurl,"user",Programm.txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\MySQLPassword.txt").get(0));
             Statement myStmt = Programm.connection.createStatement();
             firma+=method;
             String tabelleErzeugen = "create table if not exists " + firma +"(datum DATE primary key, event varchar(6), shares DOUBLE, depot DOUBLE);";
-            String addPseudo = "insert ignore into "+firma+" values(\'1950-01-01\', \'sell\', 0, "+depot+")";
+            String addPseudo = "insert ignore into "+firma+" values(\'"+startdate.minusDays(1)+"\', \'sell\', 0, "+depot+")";
             myStmt.executeUpdate(tabelleErzeugen);
             myStmt.executeUpdate(addPseudo);
             System.out.println("Datenbank verknüpft");

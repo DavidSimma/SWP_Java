@@ -89,31 +89,32 @@ public class Programm extends Application{
 
     static void durchschnitt(int schnitt) {
         gleitenderDurchschnitt.clear();
-        int count = 0;
-        double wert = 0, x,avg;
+        double tempWert=0, x,avg;
         for(int i = 0; i < close.size(); i++){
-            count++;
-            if(count <= schnitt){
-                wert += close.get(i);
-                avg = wert/count;
-                NumberFormat n = NumberFormat.getInstance();
-                n.setMaximumFractionDigits(2);
-                n.format(avg);
+
+            for (int o = i-schnitt; o <= i; o++) {
+                tempWert = 0;
+                for(int p = 0; p < schnitt; p++){
+                    if(o+p >= 0 && o+p <close.size()) {
+                        tempWert += close.get(o+p);
+                    }
+                    else {
+                        break;
+                    }
+                }
+
+            }
+            if(i > close.size()-200){
+                avg = tempWert / (close.size() - i);
                 gleitenderDurchschnitt.add(avg);
             }
-            if(count > schnitt) {
-                x = close.get(i-schnitt);
-                wert -= x;
-                wert += close.get(i);
-                avg = wert/schnitt;
-                NumberFormat n = NumberFormat.getInstance();
-                n.setMaximumFractionDigits(2);
-                n.format(avg);
+            else {
+                avg = tempWert / schnitt;
                 gleitenderDurchschnitt.add(avg);
             }
         }
-    }
 
+    }
     public static boolean connectToMySql(String firma){
         try {
             connection = DriverManager.getConnection(DBurl,"user",txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\MySQLPassword.txt").get(0));
