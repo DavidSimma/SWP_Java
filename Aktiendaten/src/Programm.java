@@ -57,7 +57,7 @@ public class Programm extends Application{
     public static void datenEinlesenUndSchreiben(String url, String firma){
         double temp1;
         JSONObject jsonObject = Jsoneinlesen(url);
-        for (LocalDate i = LocalDate.now().minusDays(1); i.isAfter(LocalDate.now().minusDays(4200)); i=i.minusDays(1)){
+        for (LocalDate i = LocalDate.now().minusDays(1); i.isAfter(LocalDate.now().minusDays(5000)); i=i.minusDays(1)){
             try{
                 temp1 = jsonObject.getJSONObject("Time Series (Daily)").getJSONObject(i.toString()).getDouble("5. adjusted close");
                 NumberFormat n = NumberFormat.getInstance();
