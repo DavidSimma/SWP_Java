@@ -21,8 +21,8 @@ public class Simulation {
         System.out.print("Toleranz: ");
         double toleranz = reader.nextDouble();
 
-        //System.out.println(aktionBeiSchnitt(firma, depot, startdate, toleranz));
-        System.out.println(einmaligeAktion(firma, depot, startdate));
+        System.out.println(aktionBeiSchnitt(firma, depot, startdate, toleranz));
+        //System.out.println(einmaligeAktion(firma, depot, startdate));
     }
     public static double aktionBeiSchnitt(String firma, double depot, LocalDate startdate, double toleranz){
         String method = "Schnitt", simulationsFirma;
@@ -33,7 +33,7 @@ public class Simulation {
             Statement myStmt = Programm.connection.createStatement();
             for(LocalDate ld = startdate; ld.isBefore(LocalDate.now()); ld=ld.plusDays(1)){
                 System.out.println(ld);
-                if(börsentag(ld)){
+                //if(börsentag(ld)){
                     System.out.println(börsentag(ld));
                     List<Double> result = selectByLastDate(myStmt, simulationsFirma, Arrays.asList("event", "depot", "shares"));
                     double event = result.get(0), dep=result.get(1), shares=result.get(2);
@@ -41,33 +41,12 @@ public class Simulation {
                     if(event == 0){
                         System.out.println(!ld.isEqual(LocalDate.now().minusDays(1)));
                         if(!ld.isEqual(LocalDate.now().minusDays(1))){
-                            List<Double> result2 = selectByDate(myStmt, firma, ld, Arrays.asList("close", "average"));
-                            double close = result2.get(0), avg = result2.get(1);
-                            System.out.println(close);
-                            close *= (1+(toleranz/100));
-                            if(close > avg){
-                                double share, depo;
-                                if(dep % close == 0){
-                                    share = dep/close;
-                                    depo = 0;
-                                }else{
-                                    share = Math.floor(dep/close);
-                                    depo = dep%close;
-                                }
-                                insert(myStmt, simulationsFirma, ld, 1, share, depo);
-                            }
+                            buy(myStmt, firma, ld, toleranz, dep, simulationsFirma);
                         }
                     }else if(event == 1){
-                        List<Double> result3 = selectByDate(myStmt, firma, ld, Arrays.asList("close", "average"));
-                        double close = result3.get(0), avg = result3.get(1);
-                        close *= (1+(toleranz/100));
-                        if(close < avg){
-                            double depo;
-                            depo = (close*shares)+dep;
-                            insert(myStmt, simulationsFirma, ld, 0, 0, depo);
-                        }
+                        sell(myStmt, firma, ld, toleranz, shares, dep, simulationsFirma);
                     }
-                }
+                //}
             }
             List<Double> result = selectByLastDate(myStmt, simulationsFirma, Arrays.asList("depot"));
             double endDepo=result.get(0);
@@ -84,23 +63,64 @@ public class Simulation {
         try {
             connectToMySql();
             Statement myStmt = Programm.connection.createStatement();
-            double closeStart = selectByDate(myStmt, firma, startdatum, Arrays.asList("close")).get(0);
-            double share, depoRest;
-            if(depot % closeStart == 0){
-                share = depot/closeStart;
-                depoRest = 0;
-            }else{
-                share = Math.floor(depot/closeStart);
-                depoRest = depot%closeStart;
+            try {
+                double closeStart = selectByDate(myStmt, firma, startdatum, Arrays.asList("close")).get(0);
+
+                double share, depoRest;
+                if (depot % closeStart == 0) {
+                    share = depot / closeStart;
+                    depoRest = 0;
+                } else {
+                    share = Math.floor(depot / closeStart);
+                    depoRest = depot % closeStart;
+                }
+                double closeEnd = selectByLastDate(myStmt, firma, Arrays.asList("close")).get(0);
+                return closeEnd * share + depoRest;
+            }catch (IndexOutOfBoundsException e){
+                System.out.println("Datensatz fehlt!");
             }
-            double closeEnd = selectByLastDate(myStmt, firma, Arrays.asList("close")).get(0);
-            return closeEnd * share + depoRest;
 
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
 
         return 420.69;
+    }
+
+    public static void buy(Statement myStmt, String firma, LocalDate ld, double toleranz, double dep, String simulationsFirma){
+        try {
+            List<Double> result2 = selectByDate(myStmt, firma, ld, Arrays.asList("close", "average"));
+            double close = result2.get(0), avg = result2.get(1);
+            System.out.println(close);
+            close *= (1 + (toleranz / 100));
+            if (close > avg) {
+                double share, depo;
+                if (dep % close == 0) {
+                    share = dep / close;
+                    depo = 0;
+                } else {
+                    share = Math.floor(dep / close);
+                    depo = dep % close;
+                }
+                insert(myStmt, simulationsFirma, ld, 1, share, depo);
+            }
+        }catch (IndexOutOfBoundsException e){
+            System.out.println("Datensatz fehlt!");
+        }
+    }
+    public static void sell(Statement myStmt, String firma, LocalDate ld, double toleranz, double shares, double dep, String simulationsFirma){
+        try {
+            List<Double> result3 = selectByDate(myStmt, firma, ld, Arrays.asList("close", "average"));
+            double close = result3.get(0), avg = result3.get(1);
+            close *= (1 + (toleranz / 100));
+            if (close < avg) {
+                double depo;
+                depo = (close * shares) + dep;
+                insert(myStmt, simulationsFirma, ld, 0, 0, depo);
+            }
+        }catch (IndexOutOfBoundsException e){
+            System.out.println("Datensatz fehlt!");
+        }
     }
 
     public static boolean börsentag(LocalDate ld){
