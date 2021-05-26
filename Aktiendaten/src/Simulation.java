@@ -33,17 +33,25 @@ public class Simulation {
             Statement myStmt = Programm.connection.createStatement();
             for(LocalDate ld = startdate; ld.isBefore(LocalDate.now()); ld=ld.plusDays(1)){
                 System.out.println(ld);
+                if (ld.isEqual(LocalDate.now().minusDays(1))) {
+                    System.out.println("---------------------------------");
+                }
                 //if(börsentag(ld)){
                     System.out.println(börsentag(ld));
                     List<Double> result = selectByLastDate(myStmt, simulationsFirma, Arrays.asList("event", "depot", "shares"));
                     double event = result.get(0), dep=result.get(1), shares=result.get(2);
                     System.out.println("|"+event+"|");
                     if(event == 0){
-                        System.out.println(!ld.isEqual(LocalDate.now().minusDays(1)));
-                        if(!ld.isEqual(LocalDate.now().minusDays(1))){
+                        LocalDate test = isLastDay(myStmt, firma);
+                        System.out.println("letzter Tag?: "+!ld.isEqual(isLastDay(myStmt, firma)));
+                        if(!ld.isEqual(isLastDay(myStmt, firma))){
                             buy(myStmt, firma, ld, toleranz, dep, simulationsFirma);
+
+                        }else {
+                            sellLast(myStmt, firma, ld, toleranz, shares, dep, simulationsFirma);
                         }
                     }else if(event == 1){
+
                         sell(myStmt, firma, ld, toleranz, shares, dep, simulationsFirma);
                     }
                 //}
@@ -122,6 +130,17 @@ public class Simulation {
             System.out.println("Datensatz fehlt!");
         }
     }
+    public static void sellLast(Statement myStmt, String firma, LocalDate ld, double toleranz, double shares, double dep, String simulationsFirma){
+        try {
+            List<Double> result3 = selectByDate(myStmt, firma, ld, Arrays.asList("close"));
+            double close = result3.get(0);
+            double depo;
+            depo = (close * shares) + dep;
+            insert(myStmt, simulationsFirma, ld, 0, 0, depo);
+        }catch (IndexOutOfBoundsException e){
+            System.out.println("Datensatz fehlt!");
+        }
+    }
 
     public static boolean börsentag(LocalDate ld){
         if (DayOfWeek.SATURDAY.equals(ld.getDayOfWeek())) {
@@ -183,7 +202,8 @@ public class Simulation {
 
     public static void insert(Statement myStmt, String firma, LocalDate ld, double action, double shares, double depot){
         try {
-            String sql = "insert ignore into "+firma+" values(\'"+ld+"\', "+action+", "+shares+", "+depot+");";
+            String sql = "insert into "+firma+" values(\'"+ld+"\', "+action+", "+shares+", "+depot+") "
+                    + "on duplicate key update event = "+action+", shares = "+shares+", depot = "+depot+";";
             myStmt.executeUpdate(sql);
             System.out.println("Datenbank-Eintrag");
         } catch (SQLException throwables) {
@@ -222,5 +242,20 @@ public class Simulation {
             throwables.printStackTrace();
         }
         return result;
+    }
+    public static LocalDate isLastDay(Statement myStmt, String simulationsFirma){
+        LocalDate ld = null;
+        String getValues = "select * from "+simulationsFirma+" order by datum desc limit 1;";
+        try {
+            ResultSet rs = myStmt.executeQuery(getValues);
+            System.out.println("Datenbank-Aufruf");
+            while (rs.next()){
+                ld = LocalDate.parse(rs.getDate("datum").toString());
+            }
+            return ld;
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return null;
     }
 }
