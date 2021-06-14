@@ -11,15 +11,23 @@ public class Simulation {
 
     public static void main(String[] args) {
         List<String> firmen = Programm.txtEinlesen("C:\\Users\\simma\\Documents\\Schule\\SWP\\Aktien\\Aktienkürzel.txt");
-        System.out.print("Startdepot: ");
-        double depot = reader.nextDouble();
-        double splitDepot = depot / firmen.size();
-        //LocalDate startdate = LocalDate.of(2010,1,1);
-        System.out.print("Startdatum[yyyy-mm-dd]: ");
-        LocalDate startdate = LocalDate.parse(reader.next());
+        double depot=0,splitDepot=0,toleranz=0;
+        LocalDate startdate = null;
+        do{
+            System.out.print("Startdepot: ");
+            depot = reader.nextDouble();
+        }while(Double.isNaN(depot));
 
-        System.out.print("Toleranz: ");
-        double toleranz = reader.nextDouble();
+        splitDepot = depot / firmen.size();
+        do {
+            System.out.print("Startdatum[yyyy-mm-dd]: ");
+            startdate = LocalDate.parse(reader.next());
+        }while(!isDateValid(startdate.toString()));
+
+        do {
+            System.out.print("Toleranz: ");
+            toleranz = reader.nextDouble();
+        }while (Double.isNaN(toleranz));
 
         double endMoney = 0, endMoney2 = 0;
         for (String s : firmen){
@@ -27,8 +35,8 @@ public class Simulation {
             endMoney += einmaligeAktion(s, splitDepot, startdate);
             endMoney2 += aktionBeiSchnitt(s, splitDepot, startdate, toleranz);
         }
-        System.out.printf("Ihr Geldbetrag nach Ausführung von Buy and Hold beträgt " + endMoney + "$");
-        System.out.printf("Ihr Geldbetrag nach Ausführung von Aktion bei 200er Schnitt beträgt " + endMoney2 + "$");
+        System.out.println("Ihr Geldbetrag nach Ausführung von Buy and Hold beträgt " + endMoney + "$");
+        System.out.println("Ihr Geldbetrag nach Ausführung von Aktion bei 200er Schnitt beträgt " + endMoney2 + "$");
     }
     public static double aktionBeiSchnitt(String firma, double depot, LocalDate startdate, double toleranz){
         String method = "Schnitt", simulationsFirma;
@@ -44,14 +52,12 @@ public class Simulation {
                     sellLast(myStmt, firma, ld, toleranz, shares, dep, simulationsFirma);
                     break;
                 }
-                //if(börsentag(ld)){
 
                 if(event == 0){
                     buy(myStmt, firma, ld, toleranz, dep, simulationsFirma);
                 }else if(event == 1){
                     sell(myStmt, firma, ld, toleranz, shares, dep, simulationsFirma);
                 }
-                //}
             }
             List<Double> result = selectByLastDate(myStmt, simulationsFirma, Arrays.asList("depot"));
             double endDepo=result.get(0);
@@ -135,36 +141,6 @@ public class Simulation {
         }
     }
 
-    public static boolean börsentag(LocalDate ld){
-        if (DayOfWeek.SATURDAY.equals(ld.getDayOfWeek())) {
-            return false;
-        } else if (DayOfWeek.SUNDAY.equals(ld.getDayOfWeek())) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 1,1))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 1,18))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 2,15))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 4,2))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 5,31))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 7,5))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 9,6))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 11,25))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 12,25))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 12,24))) {
-            return false;
-        }else if (ld.equals(LocalDate.of(ld.getYear(), 12,31))) {
-            return false;
-        }
-        return true;
-    }
 
     public static boolean connectToMySql(String firma, String method, double depot, LocalDate startdate){
         try {
@@ -263,5 +239,13 @@ public class Simulation {
             throwables.printStackTrace();
         }
         return null;
+    }
+    public static boolean isDateValid(String date){
+        try{
+            LocalDate ld = LocalDate.parse(date);
+            return true;
+        }catch (Exception e){
+            return false;
+        }
     }
 }
