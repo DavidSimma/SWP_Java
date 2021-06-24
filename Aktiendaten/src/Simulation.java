@@ -16,7 +16,7 @@ public class Simulation {
         do{
             System.out.print("Startdepot: ");
             depot = reader.nextDouble();
-        }while(Double.isNaN(depot));
+        }while(Double.isNaN(depot) && depot >= 0);
 
         splitDepot = depot / firmen.size();
         do {
@@ -25,18 +25,20 @@ public class Simulation {
         }while(!isDateValid(startdate.toString()));
 
         do {
-            System.out.print("Toleranz: ");
+            System.out.print("Toleranz [in %]: ");
             toleranz = reader.nextDouble();
-        }while (Double.isNaN(toleranz));
+        }while (Double.isNaN(toleranz) && depot >= 0);
 
-        double endMoney = 0, endMoney2 = 0;
+        double endMoney = 0, endMoney2 = 0, endMoney3 = 0;
         for (String s : firmen){
             System.out.println(s);
             endMoney += einmaligeAktion(s, splitDepot, startdate);
-            endMoney2 += aktionBeiSchnitt(s, splitDepot, startdate, toleranz);
+            endMoney2 += aktionBeiSchnitt(s, splitDepot, startdate, 0);
+            endMoney3 += aktionBeiSchnitt(s, splitDepot, startdate, toleranz);
         }
-        System.out.println("Ihr Geldbetrag nach Ausführung von Buy and Hold beträgt " + endMoney + "$");
-        System.out.println("Ihr Geldbetrag nach Ausführung von Aktion bei 200er Schnitt beträgt " + endMoney2 + "$");
+        System.out.printf("Ihr Geldbetrag nach Ausführung von Buy and Hold beträgt %.2f $ \n", endMoney);
+        System.out.printf("Ihr Geldbetrag nach Ausführung von Aktion bei 200er Schnitt beträgt %.2f $ \n", endMoney2);
+        System.out.printf("Ihr Geldbetrag nach Ausführung von Aktion bei 200er Schnitt mit 3 Prozent beträgt %.2f $", endMoney3);
     }
     public static double aktionBeiSchnitt(String firma, double depot, LocalDate startdate, double toleranz){
         String method = "Schnitt", simulationsFirma;

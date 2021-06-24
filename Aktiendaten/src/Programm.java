@@ -134,7 +134,7 @@ public class Programm extends Application{
             String writeData = "insert into "+ firma +"(datum, close, average) values(\'"+date+"\', "+close+", "+average+") " +
                     "on duplicate key update close = "+close+", average = "+average+";";
             myStmt.executeUpdate(writeData);
-            System.out.println("Datensatz eingetragen");
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
